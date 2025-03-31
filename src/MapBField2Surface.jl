@@ -1,5 +1,9 @@
 module MapBField2Surface
 
+# XXX refactor: see this as a ODE, where the r-steps are done by the B-field,
+# and add callbacks to not go into the sun?
+# for field-line tracing, see https://book.magneticearth.org/geomag-obs-models/03a_magnetic-field-line-tracing
+
 function mapb2s(B, ∇B, nr, nθ, nφ)
 
     # magnetic field at 1 R_sun
