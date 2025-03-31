@@ -1,0 +1,7 @@
+name = "MapBField2Surface"
+uuid = "35af0d63-08cc-4282-aba3-25542a37dca7"
+authors = ["Abhro R. and contributors"]
+version = "0.0.0-DEV"
+
+[compat]
+julia = "1.10"

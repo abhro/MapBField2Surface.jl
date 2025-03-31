@@ -1,0 +1,9 @@
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+MapBField2Surface = "35af0d63-08cc-4282-aba3-25542a37dca7"
+
+[compat]
+Documenter = "1"
+
+[sources]
+MapBField2Surface = {path = ".."}
