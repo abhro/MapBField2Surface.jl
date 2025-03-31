@@ -161,18 +161,13 @@ end
 # get \vec{B} = \vec{B}(\vec{r})
 function magfield(rvec, nr, nθ, nφ)
     r = rvec[1]
-    θ = rvec[2]
-    φ = rvec[3]
-    θ = acos(cos(θ)) # XXX replace with rem2pi or mod2pi
-    φ = atan2(sin(φ), cos(φ)) # XXX replace with rem2pi or mod2pi
-    if φ < 0.0
-        φ += 2π
-    end
+    θ = rem(rvec[2], π, RoundToZero)
+    φ = mod2pi(rvec[3]) # make sure it's between 0 and 2π
 
     #  find the grid cell
-    irr = floor((r-1) / (RSS-1) * n_r)
-    if irr >= nr
-        irr = nr - 1
+    ir = floor((r-1) / (RSS-1) * n_r)
+    if ir >= nr
+        ir = nr - 1
     end
 
     iθ = floor(θ / π * nθ)
@@ -185,27 +180,27 @@ function magfield(rvec, nr, nθ, nφ)
         iφ = nφ - 1
     end
 
-    if irr < 0
-      # going into the sun, stop at the surface
-      return magfieldgrid[0, iθ, iφ, :]
+    if ir < 0
+        # going into the sun, stop at the surface
+        return magfieldgrid[0, iθ, iφ, :]
     end
 
     #  relative displacement from lower grids
-    px = [(r-1.0) / (RSS-1.0) * nr - irr,
+    px = [(r-1.0) / (RSS-1.0) * nr - ir,
           θ / pi * N_θ - iθ,
           φ / twopi * N_φ - iφ]
 
     fc = zeros(2,2,2)
     b = zeros(3)
     for m in 1:3
-      fc[1,1,1] = magfieldgrid[irr,   iθ,   iφ,   m]
-      fc[2,1,1] = magfieldgrid[irr+1, iθ,   iφ,   m]
-      fc[1,2,1] = magfieldgrid[irr,   iθ+1, iφ,   m]
-      fc[2,2,1] = magfieldgrid[irr+1, iθ+1, iφ,   m]
-      fc[1,1,2] = magfieldgrid[irr,   iθ,   iφ+1, m]
-      fc[2,1,2] = magfieldgrid[irr+1, iθ,   iφ+1, m]
-      fc[1,2,2] = magfieldgrid[irr,   iθ+1, iφ+1, m]
-      fc[2,2,2] = magfieldgrid[irr+1, iθ+1, iφ+1, m]
+      fc[1,1,1] = magfieldgrid[ir,   iθ,   iφ,   m]
+      fc[2,1,1] = magfieldgrid[ir+1, iθ,   iφ,   m]
+      fc[1,2,1] = magfieldgrid[ir,   iθ+1, iφ,   m]
+      fc[2,2,1] = magfieldgrid[ir+1, iθ+1, iφ,   m]
+      fc[1,1,2] = magfieldgrid[ir,   iθ,   iφ+1, m]
+      fc[2,1,2] = magfieldgrid[ir+1, iθ,   iφ+1, m]
+      fc[1,2,2] = magfieldgrid[ir,   iθ+1, iφ+1, m]
+      fc[2,2,2] = magfieldgrid[ir+1, iθ+1, iφ+1, m]
 
       # interpolate the magnetic field
       b[m] = trilinear(fc, px)
