@@ -1,4 +1,5 @@
 module MapBField2Surface
+using OffsetArrays
 
 # XXX refactor: see this as a ODE, where the r-steps are done by the B-field,
 # and add callbacks to not go into the sun?
@@ -18,128 +19,131 @@ function mapb2s(B, ∇B, nr, nθ, nφ)
     dr = 0.01
     dt = 0.005
 
-    for k in 0:nr
-        r0[1] = 1.00001 + k*0.01
-        for i in 0:nθ
-            r0[2] = i * DEG_TO_RAD
-            for j = 0:nφ
-                r0[3] = j * DEG_TO_RAD
-                r = r0
+    radii = zeros(0:nr)
+    radii .= 1.00001 + axes(radii, 1) * 0.01
+    θs = zeros(0:nθ)
+    θs .= axes(θs, 1) * DEG_TO_RAD
+    φs = zeros(0:nφ)
+    φs .= axes(φs, 1) * DEG_TO_RAD
+
+    for (k, r_iter) in enumerate(radii),
+        (i, θ_iter) in enumerate(θs), (j, φ_iter) in enumerate(φs)
+
+        r0 .= [r_iter, θ_iter, φ_iter]
+        r = r0
+        b = magfield(r, nr, nθ, nφ)
+        if b[1] > 0
+            pol = 1.0
+        else
+            pol = -1.0
+        end
+        n = 0
+
+        bmag0 = norm(b)
+        b1rs[k,i,j,2] = bmag0
+        bmag = bmag0
+        if k == 1 && i == 1 && j == 1
+            @debug b
+        end
+        rmin[1] = 100000
+        while r[1] > 1.000009
+            r[2] = acos(cos(r[2]))
+            r[3] = atan2(sin(r[3]), cos(r[3]))
+            if r[3] < 0
+                r[3] += 2π
+            end
+            r1 = r
+            b = magfield(r, nr, nθ, nφ)
+            bmag = norm2(b)
+            #v = -pol*b/bmag
+            #v[2] = v[2]/r1[1]
+            #sinθ = sin(r1[2])
+            #if sinθ == 0
+            #   sinθ = 1.0d-6
+            #end
+            #v[3] = v[3] / (r1[1]*sinθ)
+            dt = dr * 0.1
+            #r = rk4(r1, v, 3, t, dt, vfunc, pol)
+            r = rk4(vfunc, t, r1, dt, pol)
+            n = n + 1
+
+            if r[2] < 0
+              r[2] = -r[2]
+              r[3] = r[3] + π
+              if r[3] > 2π
+                  r[3] -= 2π
+              end
+            end
+
+            if r[1] < rmin[1]
+                rmin = r
+            end
+            if (r[1] - rmin[1]) > 2.5 || n > 10000 # wrong direction?
+              pol = -pol #try back with opposite polarity
+              n1 = 0
+              r = r0
+              rmin1[1] = 100000.0
+              while r[1] > 1.000009
+                r[2] = acos(cos(r[2]))
+                r[3] = atan2(sin(r[3]), cos(r[3]))
+                if r[3] < 0
+                    r[3] += 2π
+                end
+                r1 = r
                 b = magfield(r, nr, nθ, nφ)
-                if b[1] > 0
-                    pol = 1.0
-                else
-                    pol = -1.0
+                bmag = norm2(b)
+                # v = -pol * b / bmag
+                # v[2] = v[2] / r1[1]
+                # sinθ = sin(r1(2))
+                # if sinθ == 0
+                #     sinθ = 1.0d-6
+                # end
+                # v[3] /= r1[1] * sinθ
+                dt = dr * 0.1
+                #r = rk4(r1, v, 3, t, dt, vfunc, pol)
+                r = rk4(vfunc, t, r1, dt, pol)
+                n1 = n1 + 1
+                if r[2] < 0
+                  r[2] = -r[2]
+                  r[3] = r[3]+π
+                  if r[3] > 2π
+                      r[3] = r[3] - 2π
+                  end
                 end
-                n = 0
-
-                bmag0 = norm(b)
-                b1rs[k,i,j,2] = bmag0
-                bmag = bmag0
-                if k == 1 && i == 1 && j == 1
-                    @debug b
-                end
-                rmin[1] = 100000
-                while r[1] > 1.000009
-                    r[2] = acos(cos(r[2]))
-                    r[3] = atan2(sin(r[3]), cos(r[3]))
-                    if r[3] < 0
-                        r[3] += 2π
-                    end
-                    r1 = r
-                    b = magfield(r, nr, nθ, nφ)
-                    bmag = norm2(b)
-                    #v = -pol*b/bmag
-                    #v[2] = v[2]/r1[1]
-                    #sinθ = sin(r1[2])
-                    #if sinθ == 0
-                    #   sinθ = 1.0d-6
-                    #end
-                    #v[3] = v[3] / (r1[1]*sinθ)
-                    dt = dr * 0.1
-                    #r = rk4(r1, v, 3, t, dt, vfunc, pol)
-                    r = rk4(vfunc, t, r1, dt, pol)
-                    n = n + 1
-
-                    if r[2] < 0
-                      r[2] = -r[2]
-                      r[3] = r[3] + π
-                      if r[3] > 2π
-                          r[3] -= 2π
-                      end
-                    end
-
-                    if r[1] < rmin[1]
-                        rmin = r
-                    end
-                    if (r[1] - rmin[1]) > 2.5 || n > 10000 # wrong direction?
-                      pol = -pol #try back with opposite polarity
-                      n1 = 0
-                      r = r0
-                      rmin1[1] = 100000.0
-                      while r[1] > 1.000009
-                        r[2] = acos(cos(r[2]))
-                        r[3] = atan2(sin(r[3]), cos(r[3]))
-                        if r[3] < 0
-                            r[3] += 2π
-                        end
-                        r1 = r
-                        b = magfield(r, nr, nθ, nφ)
-                        bmag = norm2(b)
-                        # v = -pol * b / bmag
-                        # v[2] = v[2] / r1[1]
-                        # sinθ = sin(r1(2))
-                        # if sinθ == 0
-                        #     sinθ = 1.0d-6
-                        # end
-                        # v[3] /= r1[1] * sinθ
-                        dt = dr * 0.1
-                        #r = rk4(r1, v, 3, t, dt, vfunc, pol)
-                        r = rk4(vfunc, t, r1, dt, pol)
-                        n1 = n1 + 1
-                        if r[2] < 0
-                          r[2] = -r[2]
-                          r[3] = r[3]+π
-                          if r[3] > 2π
-                              r[3] = r[3] - 2π
-                          end
-                        end
-                        if r[1] < rmin1[1]
-                            rmin1 = r
-                        end
-
-                        # double open field or stuck
-                        if (r[1] - rmin1[1]) > 2.5 || n1 > 10000
-                          if rmin[1] < rmin1[1]
-                            pol = -pol
-                            r = rmin # use rmin to remap
-                          else
-                            pol = pol
-                            r = rmin1
-                          end
-                          lr = floor((r[1] - 1.0d0) / 0.01)
-                          lθ = floor(r[2] / π* 180)
-                          lφ = floor(r[3] / π* 180)
-                          if ((lr*(nθ+1)+lθ) * (nφ+1) + lφ) < ((k*(nθ+1) + i) * (nφ+1) + j)
-                              map[k,i,j] = (lr*(nθ+1)+lθ) * (nφ+1) + lφ
-                          else
-                              @info("New x point at", lr, lθ, lφ)
-                              map[k,i,j] = ((lr-1)*(nθ+1)+lθ) * (nφ+1) + lφ
-                          end
-                          bmag = 0.0
-                          break
-                        end
-                      end
-                      break
-                    end
+                if r[1] < rmin1[1]
+                    rmin1 = r
                 end
 
-                #nan1 = -3.0
-                #nan = sqrt(nan1)
-                b1rs[k,i,j,1] = pol * bmag
-                map[k,i,j] = pol * map(k,i,j)
+                # double open field or stuck
+                if (r[1] - rmin1[1]) > 2.5 || n1 > 10000
+                  if rmin[1] < rmin1[1]
+                    pol = -pol
+                    r = rmin # use rmin to remap
+                  else
+                    pol = pol
+                    r = rmin1
+                  end
+                  lr = floor((r[1] - 1.0d0) / 0.01)
+                  lθ = floor(r[2] / π* 180)
+                  lφ = floor(r[3] / π* 180)
+                  if ((lr*(nθ+1)+lθ) * (nφ+1) + lφ) < ((k*(nθ+1) + i) * (nφ+1) + j)
+                      map[k,i,j] = (lr*(nθ+1)+lθ) * (nφ+1) + lφ
+                  else
+                      @info("New x point at", lr, lθ, lφ)
+                      map[k,i,j] = ((lr-1)*(nθ+1)+lθ) * (nφ+1) + lφ
+                  end
+                  bmag = 0.0
+                  break
+                end
+              end
+              break
             end
         end
+
+        #nan1 = -3.0
+        #nan = sqrt(nan1)
+        b1rs[k,i,j,1] = pol * bmag
+        map[k,i,j] = pol * map(k,i,j)
     end
 
 end
