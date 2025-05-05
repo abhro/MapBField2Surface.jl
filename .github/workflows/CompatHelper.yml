@@ -7,12 +7,12 @@ jobs:
   CompatHelper:
     runs-on: ubuntu-latest
     steps:
-      - name: Pkg.add("CompatHelper")
+      - name: Install CompatHelper
         shell: julia --color=yes {0}
         run: |
           using Pkg
           Pkg.add("CompatHelper")
-      - name: CompatHelper.main()
+      - name: Run CompatHelper
         shell: julia --color=yes {0}
         run: |
           using CompatHelper
