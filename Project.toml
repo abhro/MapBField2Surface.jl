@@ -3,5 +3,9 @@ uuid = "35af0d63-08cc-4282-aba3-25542a37dca7"
 authors = ["Abhro R. and contributors"]
 version = "0.0.0-DEV"
 
+[deps]
+OffsetArrays = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
+
 [compat]
+OffsetArrays = "1"
 julia = "1.10"
