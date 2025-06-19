@@ -45,7 +45,7 @@ function mapb2s(B, ∇B, nr, nθ, nφ)
         if k == 1 && i == 1 && j == 1
             @debug b
         end
-        rmin[1] = 100000
+        r_min[1] = 100000
         while r[1] > 1.000009
             r[2] = acos(cos(r[2]))
             r[3] = atan2(sin(r[3]), cos(r[3]))
@@ -75,14 +75,14 @@ function mapb2s(B, ∇B, nr, nθ, nφ)
                 end
             end
 
-            if r[1] < rmin[1]
-                rmin = r
+            if r[1] < r_min[1]
+                r_min .= r
             end
-            if (r[1] - rmin[1]) > 2.5 || n > 10000 # wrong direction?
+            if (r[1] - r_min[1]) > 2.5 || n > 10000 # wrong direction?
                 pol = -pol #try back with opposite polarity
                 n1 = 0
                 r = r0
-                rmin1[1] = 100000.0
+                r_min1[1] = 100000.0
                 while r[1] > 1.000009
                     r[2] = acos(cos(r[2]))
                     r[3] = atan2(sin(r[3]), cos(r[3]))
@@ -110,18 +110,18 @@ function mapb2s(B, ∇B, nr, nθ, nφ)
                             r[3] = r[3] - 2π
                         end
                     end
-                    if r[1] < rmin1[1]
-                        rmin1 = r
+                    if r[1] < r_min1[1]
+                        r_min1 .= r
                     end
 
                     # double open field or stuck
-                    if (r[1] - rmin1[1]) > 2.5 || n1 > 10000
-                        if rmin[1] < rmin1[1]
+                    if (r[1] - r_min1[1]) > 2.5 || n1 > 10000
+                        if r_min[1] < r_min1[1]
                             pol = -pol
-                            r = rmin # use rmin to remap
+                            r = r_min # use r_min to remap
                         else
                             pol = pol
-                            r = rmin1
+                            r = r_min1
                         end
                         lr = floor((r[1] - 1) / 0.01)
                         lθ = floor(r[2] / π* 180)
@@ -204,7 +204,7 @@ function magfield(rvec, nr, nθ, nφ)
         return magfieldgrid[0, iθ, iφ, :]
     end
 
-    #  relative displacement from lower grids
+    # relative displacement from lower grids
     px = [(r-1.0) / (RSS-1.0) * nr - ir,
           θ / pi * N_θ - iθ,
           φ / twopi * N_φ - iφ]
@@ -228,19 +228,26 @@ function magfield(rvec, nr, nθ, nφ)
     return b
 end
 
-# trilinear interpolation
-function trilinear(
-        fc,     # fc the value of f at the corner of cubic box of side 1
-        x)      # location inside the cube (0≤x≤1) or outside x<0 x>1
+"""
+    trilinear(fc, x)
 
-    f = (fc[1,1,1] * (1-x[1]) * (1-x[2]) * (1-x[3])
-       + fc[2,1,1] *    x[1]  * (1-x[2]) * (1-x[3])
-       + fc[1,2,1] * (1-x[1]) *    x[2]  * (1-x[3])
-       + fc[1,1,2] * (1-x[1]) * (1-x[2]) *    x[3]
-       + fc[2,1,2] *    x[1]  * (1-x[2]) *    x[3]
-       + fc[1,2,2] * (1-x[1]) *    x[2]  *    x[3]
-       + fc[2,2,1] *    x[1]  *    x[2]  * (1-x[3])
-       + fc[2,2,2] *    x[1]  *    x[2]  *    x[3])
+Trilinear interpolation
+
+### Arguments
+- `fc`: the value of f at the corner of cubic box of side 1 (3-d array)
+- `r`:  location inside the cube (0≤x≤1) or outside x<0 x>1
+"""
+function trilinear(fc, r)
+    x, y, z = r
+
+    f = (fc[1,1,1] * (1-x) * (1-y) * (1-z)
+       + fc[2,1,1] *    x  * (1-y) * (1-z)
+       + fc[1,2,1] * (1-x) *    y  * (1-z)
+       + fc[1,1,2] * (1-x) * (1-y) *    z
+       + fc[2,1,2] *    x  * (1-y) *    z
+       + fc[1,2,2] * (1-x) *    y  *    z
+       + fc[2,2,1] *    x  *    y  * (1-z)
+       + fc[2,2,2] *    x  *    y  *    z)
 
     return f
 end
