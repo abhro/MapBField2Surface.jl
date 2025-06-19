@@ -68,75 +68,75 @@ function mapb2s(B, ∇B, nr, nθ, nφ)
             n = n + 1
 
             if r[2] < 0
-              r[2] = -r[2]
-              r[3] = r[3] + π
-              if r[3] > 2π
-                  r[3] -= 2π
-              end
+                r[2] = -r[2]
+                r[3] = r[3] + π
+                if r[3] > 2π
+                    r[3] -= 2π
+                end
             end
 
             if r[1] < rmin[1]
                 rmin = r
             end
             if (r[1] - rmin[1]) > 2.5 || n > 10000 # wrong direction?
-              pol = -pol #try back with opposite polarity
-              n1 = 0
-              r = r0
-              rmin1[1] = 100000.0
-              while r[1] > 1.000009
-                r[2] = acos(cos(r[2]))
-                r[3] = atan2(sin(r[3]), cos(r[3]))
-                if r[3] < 0
-                    r[3] += 2π
-                end
-                r1 = r
-                b = magfield(r, nr, nθ, nφ)
-                bmag = norm2(b)
-                # v = -pol * b / bmag
-                # v[2] = v[2] / r1[1]
-                # sinθ = sin(r1(2))
-                # if sinθ == 0
-                #     sinθ = 1.0d-6
-                # end
-                # v[3] /= r1[1] * sinθ
-                dt = dr * 0.1
-                #r = rk4(r1, v, 3, t, dt, vfunc, pol)
-                r = rk4(vfunc, t, r1, dt, pol)
-                n1 = n1 + 1
-                if r[2] < 0
-                  r[2] = -r[2]
-                  r[3] = r[3]+π
-                  if r[3] > 2π
-                      r[3] = r[3] - 2π
-                  end
-                end
-                if r[1] < rmin1[1]
-                    rmin1 = r
-                end
+                pol = -pol #try back with opposite polarity
+                n1 = 0
+                r = r0
+                rmin1[1] = 100000.0
+                while r[1] > 1.000009
+                    r[2] = acos(cos(r[2]))
+                    r[3] = atan2(sin(r[3]), cos(r[3]))
+                    if r[3] < 0
+                        r[3] += 2π
+                    end
+                    r1 = r
+                    b = magfield(r, nr, nθ, nφ)
+                    bmag = norm2(b)
+                    # v = -pol * b / bmag
+                    # v[2] = v[2] / r1[1]
+                    # sinθ = sin(r1(2))
+                    # if sinθ == 0
+                    #     sinθ = 1.0d-6
+                    # end
+                    # v[3] /= r1[1] * sinθ
+                    dt = dr * 0.1
+                    #r = rk4(r1, v, 3, t, dt, vfunc, pol)
+                    r = rk4(vfunc, t, r1, dt, pol)
+                    n1 = n1 + 1
+                    if r[2] < 0
+                        r[2] = -r[2]
+                        r[3] = r[3]+π
+                        if r[3] > 2π
+                            r[3] = r[3] - 2π
+                        end
+                    end
+                    if r[1] < rmin1[1]
+                        rmin1 = r
+                    end
 
-                # double open field or stuck
-                if (r[1] - rmin1[1]) > 2.5 || n1 > 10000
-                  if rmin[1] < rmin1[1]
-                    pol = -pol
-                    r = rmin # use rmin to remap
-                  else
-                    pol = pol
-                    r = rmin1
-                  end
-                  lr = floor((r[1] - 1.0d0) / 0.01)
-                  lθ = floor(r[2] / π* 180)
-                  lφ = floor(r[3] / π* 180)
-                  if ((lr*(nθ+1)+lθ) * (nφ+1) + lφ) < ((k*(nθ+1) + i) * (nφ+1) + j)
-                      map[k,i,j] = (lr*(nθ+1)+lθ) * (nφ+1) + lφ
-                  else
-                      @info("New x point at", lr, lθ, lφ)
-                      map[k,i,j] = ((lr-1)*(nθ+1)+lθ) * (nφ+1) + lφ
-                  end
-                  bmag = 0.0
-                  break
+                    # double open field or stuck
+                    if (r[1] - rmin1[1]) > 2.5 || n1 > 10000
+                        if rmin[1] < rmin1[1]
+                            pol = -pol
+                            r = rmin # use rmin to remap
+                        else
+                            pol = pol
+                            r = rmin1
+                        end
+                        lr = floor((r[1] - 1.0d0) / 0.01)
+                        lθ = floor(r[2] / π* 180)
+                        lφ = floor(r[3] / π* 180)
+                        if ((lr*(nθ+1)+lθ) * (nφ+1) + lφ) < ((k*(nθ+1) + i) * (nφ+1) + j)
+                            map[k,i,j] = (lr*(nθ+1)+lθ) * (nφ+1) + lφ
+                        else
+                            @info("New x point at", lr, lθ, lφ)
+                            map[k,i,j] = ((lr-1)*(nθ+1)+lθ) * (nφ+1) + lφ
+                        end
+                        bmag = 0.0
+                        break
+                    end
                 end
-              end
-              break
+                break
             end
         end
 
@@ -148,8 +148,15 @@ function mapb2s(B, ∇B, nr, nθ, nφ)
 
 end
 
-# velocity function. find dr/dt given r and t (t not really needed)
-# v = -sgn(B_r)/|B| (B_r r_hat + B_θ / r θ_hat + B_φ / (r sin θ) φ_hat)
+@doc raw"""
+    vfunc(t, r, pol)
+
+Velocity function. Find dr/dt given r and t (t not really needed here).
+
+```math
+v = -\frac{\sgn(B_r)}{|B|} \left(B_r \hat{r} + \frac{B_θ}{r} \hat{θ} + \frac{B_φ}{r \sin θ} \hat{φ}\right)
+```
+"""
 function vfunc(t, r, pol)
     b = magfield(r, nr, nθ, nφ)
     bmag = norm2(b)
@@ -166,7 +173,11 @@ function vfunc(t, r, pol)
     return v
 end
 
-# get \vec{B} = \vec{B}(\vec{r})
+"""
+    magfield(rvec, nr, nθ, nφ)
+
+Get ``\\mathbf{B} = \\mathbf{B}(\\mathbf{r})``
+"""
 function magfield(rvec, nr, nθ, nφ)
     r = rvec[1]
     θ = rem(rvec[2], π, RoundToZero)
@@ -201,17 +212,17 @@ function magfield(rvec, nr, nθ, nφ)
     fc = zeros(2,2,2)
     b = zeros(3)
     for m in 1:3
-      fc[1,1,1] = magfieldgrid[ir,   iθ,   iφ,   m]
-      fc[2,1,1] = magfieldgrid[ir+1, iθ,   iφ,   m]
-      fc[1,2,1] = magfieldgrid[ir,   iθ+1, iφ,   m]
-      fc[2,2,1] = magfieldgrid[ir+1, iθ+1, iφ,   m]
-      fc[1,1,2] = magfieldgrid[ir,   iθ,   iφ+1, m]
-      fc[2,1,2] = magfieldgrid[ir+1, iθ,   iφ+1, m]
-      fc[1,2,2] = magfieldgrid[ir,   iθ+1, iφ+1, m]
-      fc[2,2,2] = magfieldgrid[ir+1, iθ+1, iφ+1, m]
+        fc[1,1,1] = magfieldgrid[ir,   iθ,   iφ,   m]
+        fc[2,1,1] = magfieldgrid[ir+1, iθ,   iφ,   m]
+        fc[1,2,1] = magfieldgrid[ir,   iθ+1, iφ,   m]
+        fc[2,2,1] = magfieldgrid[ir+1, iθ+1, iφ,   m]
+        fc[1,1,2] = magfieldgrid[ir,   iθ,   iφ+1, m]
+        fc[2,1,2] = magfieldgrid[ir+1, iθ,   iφ+1, m]
+        fc[1,2,2] = magfieldgrid[ir,   iθ+1, iφ+1, m]
+        fc[2,2,2] = magfieldgrid[ir+1, iθ+1, iφ+1, m]
 
-      # interpolate the magnetic field
-      b[m] = trilinear(fc, px)
+        # interpolate the magnetic field
+        b[m] = trilinear(fc, px)
     end
 
     return b
@@ -233,6 +244,5 @@ function trilinear(
 
     return f
 end
-
 
 end
