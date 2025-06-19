@@ -59,7 +59,7 @@ function mapb2s(B, ∇B, nr, nθ, nφ)
             #v[2] = v[2]/r1[1]
             #sinθ = sin(r1[2])
             #if sinθ == 0
-            #   sinθ = 1.0d-6
+            #   sinθ = 1e-6
             #end
             #v[3] = v[3] / (r1[1]*sinθ)
             dt = dr * 0.1
@@ -94,9 +94,9 @@ function mapb2s(B, ∇B, nr, nθ, nφ)
                     bmag = norm2(b)
                     # v = -pol * b / bmag
                     # v[2] = v[2] / r1[1]
-                    # sinθ = sin(r1(2))
+                    # sinθ = sin(r1[2])
                     # if sinθ == 0
-                    #     sinθ = 1.0d-6
+                    #     sinθ = 1e-6
                     # end
                     # v[3] /= r1[1] * sinθ
                     dt = dr * 0.1
@@ -123,7 +123,7 @@ function mapb2s(B, ∇B, nr, nθ, nφ)
                             pol = pol
                             r = rmin1
                         end
-                        lr = floor((r[1] - 1.0d0) / 0.01)
+                        lr = floor((r[1] - 1) / 0.01)
                         lθ = floor(r[2] / π* 180)
                         lφ = floor(r[3] / π* 180)
                         if ((lr*(nθ+1)+lθ) * (nφ+1) + lφ) < ((k*(nθ+1) + i) * (nφ+1) + j)
@@ -164,7 +164,7 @@ function vfunc(t, r, pol)
         return zeros(3)
     end
     v = -pol * b / bmag
-    v[2] /= r(1)
+    v[2] /= r[1]
     sinθ = sin(r[2])
     if sinθ == 0
         sinθ = 1.0e-6
@@ -231,7 +231,7 @@ end
 # trilinear interpolation
 function trilinear(
         fc,     # fc the value of f at the corner of cubic box of side 1
-        x)      # location inside the cube (0<=x<=1) or outside x<0 x>1
+        x)      # location inside the cube (0≤x≤1) or outside x<0 x>1
 
     f = (fc[1,1,1] * (1-x[1]) * (1-x[2]) * (1-x[3])
        + fc[2,1,1] *    x[1]  * (1-x[2]) * (1-x[3])
